@@ -1,18 +1,33 @@
 import { Box, Flex, Icon, Text } from "@chakra-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Link as RouterLink } from "@tanstack/react-router"
-import { FiBriefcase, FiHome, FiSettings, FiUsers } from "react-icons/fi"
+import {
+  FiActivity,
+  FiBriefcase,
+  FiFilter,
+  FiHome,
+  FiSettings,
+  FiUsers,
+} from "react-icons/fi"
 import type { IconType } from "react-icons/lib"
 
 import type { UserPublic } from "@/client"
 
 const items = [
   { icon: FiHome, title: "Dashboard", path: "/" },
-  { icon: FiBriefcase, title: "Items", path: "/items" },
+  // { icon: FiBriefcase, title: "Items", path: "/items" },
   { icon: FiSettings, title: "User Settings", path: "/settings" },
-  { icon: FiBriefcase, title: "Service 1", path: "/service-1" },
-  { icon: FiBriefcase, title: "Service 2", path: "/service-2" },
-  { icon: FiBriefcase, title: "Service 3", path: "/service-3" },
+  {
+    icon: FiActivity,
+    title: "Medical Appointment Booking Service",
+    path: "/service-1",
+  },
+  {
+    icon: FiFilter,
+    title: "Online Tax Refund Application",
+    path: "/service-2",
+  },
+  { icon: FiBriefcase, title: "Application Record Query", path: "/service-3" },
 ]
 
 interface SidebarItemsProps {
