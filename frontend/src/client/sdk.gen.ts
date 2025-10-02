@@ -3,7 +3,210 @@
 import type { CancelablePromise } from './core/CancelablePromise';
 import { OpenAPI } from './core/OpenAPI';
 import { request as __request } from './core/request';
-import type { ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+import type { AppointmentsValidateUserData, AppointmentsValidateUserResponse, AppointmentsGetHospitalsData, AppointmentsGetHospitalsResponse, AppointmentsGetHospitalDoctorsData, AppointmentsGetHospitalDoctorsResponse, AppointmentsGetDoctorTimeSlotsData, AppointmentsGetDoctorTimeSlotsResponse, AppointmentsCreateAppointmentData, AppointmentsCreateAppointmentResponse, AppointmentsGetAppointmentsData, AppointmentsGetAppointmentsResponse, AppointmentsGetAppointmentData, AppointmentsGetAppointmentResponse, AppointmentsUpdateAppointmentData, AppointmentsUpdateAppointmentResponse, AppointmentsDeleteAppointmentData, AppointmentsDeleteAppointmentResponse, ItemsReadItemsData, ItemsReadItemsResponse, ItemsCreateItemData, ItemsCreateItemResponse, ItemsReadItemData, ItemsReadItemResponse, ItemsUpdateItemData, ItemsUpdateItemResponse, ItemsDeleteItemData, ItemsDeleteItemResponse, LoginLoginAccessTokenData, LoginLoginAccessTokenResponse, LoginTestTokenResponse, LoginRecoverPasswordData, LoginRecoverPasswordResponse, LoginResetPasswordData, LoginResetPasswordResponse, LoginRecoverPasswordHtmlContentData, LoginRecoverPasswordHtmlContentResponse, PrivateCreateUserData, PrivateCreateUserResponse, UsersReadUsersData, UsersReadUsersResponse, UsersCreateUserData, UsersCreateUserResponse, UsersReadUserMeResponse, UsersDeleteUserMeResponse, UsersUpdateUserMeData, UsersUpdateUserMeResponse, UsersUpdatePasswordMeData, UsersUpdatePasswordMeResponse, UsersRegisterUserData, UsersRegisterUserResponse, UsersReadUserByIdData, UsersReadUserByIdResponse, UsersUpdateUserData, UsersUpdateUserResponse, UsersDeleteUserData, UsersDeleteUserResponse, UtilsTestEmailData, UtilsTestEmailResponse, UtilsHealthCheckResponse } from './types.gen';
+
+export class AppointmentsService {
+    /**
+     * Validate User
+     * Validate user information before booking.
+     * This is a simple validation that checks if the required fields are provided.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static validateUser(data: AppointmentsValidateUserData): CancelablePromise<AppointmentsValidateUserResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/appointments/validate-user',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Hospitals
+     * Get list of all hospitals.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns HospitalsPublic Successful Response
+     * @throws ApiError
+     */
+    public static getHospitals(data: AppointmentsGetHospitalsData = {}): CancelablePromise<AppointmentsGetHospitalsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/appointments/hospitals',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Hospital Doctors
+     * Get list of doctors for a specific hospital.
+     * @param data The data for the request.
+     * @param data.hospitalId
+     * @param data.skip
+     * @param data.limit
+     * @returns DoctorsPublic Successful Response
+     * @throws ApiError
+     */
+    public static getHospitalDoctors(data: AppointmentsGetHospitalDoctorsData): CancelablePromise<AppointmentsGetHospitalDoctorsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/appointments/hospitals/{hospital_id}/doctors',
+            path: {
+                hospital_id: data.hospitalId
+            },
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Doctor Time Slots
+     * Get available time slots for a specific doctor.
+     * @param data The data for the request.
+     * @param data.doctorId
+     * @returns DoctorTimeSlotPublic Successful Response
+     * @throws ApiError
+     */
+    public static getDoctorTimeSlots(data: AppointmentsGetDoctorTimeSlotsData): CancelablePromise<AppointmentsGetDoctorTimeSlotsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/appointments/doctors/{doctor_id}/time-slots',
+            path: {
+                doctor_id: data.doctorId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Create Appointment
+     * Create a new appointment.
+     * @param data The data for the request.
+     * @param data.requestBody
+     * @returns AppointmentPublic Successful Response
+     * @throws ApiError
+     */
+    public static createAppointment(data: AppointmentsCreateAppointmentData): CancelablePromise<AppointmentsCreateAppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/appointments/',
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Appointments
+     * Get list of appointments for the current user.
+     * @param data The data for the request.
+     * @param data.skip
+     * @param data.limit
+     * @returns AppointmentsPublic Successful Response
+     * @throws ApiError
+     */
+    public static getAppointments(data: AppointmentsGetAppointmentsData = {}): CancelablePromise<AppointmentsGetAppointmentsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/appointments/',
+            query: {
+                skip: data.skip,
+                limit: data.limit
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Get Appointment
+     * Get appointment details by ID.
+     * @param data The data for the request.
+     * @param data.appointmentId
+     * @returns AppointmentPublic Successful Response
+     * @throws ApiError
+     */
+    public static getAppointment(data: AppointmentsGetAppointmentData): CancelablePromise<AppointmentsGetAppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/appointments/{appointment_id}',
+            path: {
+                appointment_id: data.appointmentId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Update Appointment
+     * Update an appointment (e.g., cancel it).
+     * @param data The data for the request.
+     * @param data.appointmentId
+     * @param data.requestBody
+     * @returns AppointmentPublic Successful Response
+     * @throws ApiError
+     */
+    public static updateAppointment(data: AppointmentsUpdateAppointmentData): CancelablePromise<AppointmentsUpdateAppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/v1/appointments/{appointment_id}',
+            path: {
+                appointment_id: data.appointmentId
+            },
+            body: data.requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+    
+    /**
+     * Delete Appointment
+     * Delete an appointment.
+     * @param data The data for the request.
+     * @param data.appointmentId
+     * @returns Message Successful Response
+     * @throws ApiError
+     */
+    public static deleteAppointment(data: AppointmentsDeleteAppointmentData): CancelablePromise<AppointmentsDeleteAppointmentResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/v1/appointments/{appointment_id}',
+            path: {
+                appointment_id: data.appointmentId
+            },
+            errors: {
+                422: 'Validation Error'
+            }
+        });
+    }
+}
 
 export class ItemsService {
     /**

@@ -11,66 +11,21 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
 import { toaster } from "@/components/ui/toaster"
+import { AppointmentsService } from "@/client"
+import type {
+  AppointmentCreate,
+  UserValidation,
+} from "@/client"
 
 export const Route = createFileRoute("/_layout/service-1")({
   component: RouteComponent,
 })
-
-// Mock Data
-const mockHospitals = [
-  { id: "1", name: "City General Hospital", address: "123 Main St" },
-  { id: "2", name: "St. Mary Medical Center", address: "456 Oak Ave" },
-  { id: "3", name: "University Hospital", address: "789 College Blvd" },
-]
-
-const mockDoctors = {
-  "1": [
-    { id: "d1", name: "Dr. John Smith", specialty: "Cardiology", rating: 4.8 },
-    {
-      id: "d2",
-      name: "Dr. Sarah Johnson",
-      specialty: "Internal Medicine",
-      rating: 4.9,
-    },
-  ],
-  "2": [
-    {
-      id: "d3",
-      name: "Dr. Michael Brown",
-      specialty: "Orthopedics",
-      rating: 4.7,
-    },
-    { id: "d4", name: "Dr. Emily Davis", specialty: "Pediatrics", rating: 4.9 },
-  ],
-  "3": [
-    {
-      id: "d5",
-      name: "Dr. Robert Wilson",
-      specialty: "Neurology",
-      rating: 4.8,
-    },
-    {
-      id: "d6",
-      name: "Dr. Lisa Anderson",
-      specialty: "Dermatology",
-      rating: 4.6,
-    },
-  ],
-}
-
-const mockTimeSlots = {
-  d1: ["09:00 AM", "10:30 AM", "02:00 PM", "03:30 PM"],
-  d2: ["08:30 AM", "11:00 AM", "01:30 PM", "04:00 PM"],
-  d3: ["09:30 AM", "11:30 AM", "02:30 PM"],
-  d4: ["08:00 AM", "10:00 AM", "01:00 PM", "03:00 PM"],
-  d5: ["09:00 AM", "02:00 PM", "04:30 PM"],
-  d6: ["10:00 AM", "11:00 AM", "03:00 PM", "04:00 PM"],
-}
 
 interface UserInfo {
   name: string
@@ -91,36 +46,84 @@ function RouteComponent() {
   const [selectedDoctor, setSelectedDoctor] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
   const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
 
-  const mockValidateUser = async (info: UserInfo): Promise<boolean> => {
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setLoading(false)
-    return (
-      info.name.length >= 2 &&
-      info.idNumber.length >= 10 &&
-      info.phone.length >= 10
-    )
-  }
+  // Fetch hospitals
+  const { data: hospitalsData } = useQuery({
+    queryKey: ["hospitals"],
+    queryFn: () => AppointmentsService.getHospitals(),
+  })
 
-  const mockBookAppointment = async (): Promise<boolean> => {
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setLoading(false)
-    return Math.random() > 0.1 // 90% success rate
-  }
+  // Fetch doctors for selected hospital
+  const { data: doctorsData } = useQuery({
+    queryKey: ["doctors", selectedHospital],
+    queryFn: () =>
+      AppointmentsService.getHospitalDoctors({
+        hospitalId: selectedHospital,
+      }),
+    enabled: !!selectedHospital,
+  })
+
+  // Fetch time slots for selected doctor
+  const { data: timeSlotsData } = useQuery({
+    queryKey: ["timeSlots", selectedDoctor],
+    queryFn: () =>
+      AppointmentsService.getDoctorTimeSlots({
+        doctorId: selectedDoctor,
+      }),
+    enabled: !!selectedDoctor,
+  })
+
+  // Validate user mutation
+  const validateUserMutation = useMutation({
+    mutationFn: (userValidation: UserValidation) =>
+      AppointmentsService.validateUser({
+        requestBody: userValidation,
+      }),
+    onSuccess: () => {
+      setCurrentStep(2)
+      setError("")
+    },
+    onError: (err: any) => {
+      setError(
+        err.body?.detail || "User validation failed. Please check your information and try again.",
+      )
+    },
+  })
+
+  // Create appointment mutation
+  const createAppointmentMutation = useMutation({
+    mutationFn: (appointmentData: AppointmentCreate) =>
+      AppointmentsService.createAppointment({
+        requestBody: appointmentData,
+      }),
+    onSuccess: (data) => {
+      const doctor = doctorsData?.data.find((d) => d.id === selectedDoctor)
+      toaster.create({
+        title: "Appointment Booked Successfully!",
+        description: `Your appointment with ${doctor?.name} at ${selectedTime} has been confirmed.`,
+        type: "success",
+      })
+      // Reset form
+      setCurrentStep(1)
+      setUserInfo({ name: "", idNumber: "", phone: "", email: "" })
+      setSelectedHospital("")
+      setSelectedDoctor("")
+      setSelectedTime("")
+      setError("")
+    },
+    onError: (err: any) => {
+      setError(err.body?.detail || "Booking failed. Please try again.")
+    },
+  })
 
   const handleUserInfoSubmit = async () => {
     setError("")
-    const isValid = await mockValidateUser(userInfo)
-    if (isValid) {
-      setCurrentStep(2)
-    } else {
-      setError(
-        "User validation failed. Please check your information and try again.",
-      )
-    }
+    validateUserMutation.mutate({
+      name: userInfo.name,
+      id_number: userInfo.idNumber,
+      phone: userInfo.phone,
+      email: userInfo.email || undefined,
+    })
   }
 
   const handleHospitalSelect = (hospitalId: string) => {
@@ -143,22 +146,15 @@ function RouteComponent() {
 
   const handleConfirmBooking = async () => {
     setError("")
-    const success = await mockBookAppointment()
-    if (success) {
-      toaster.create({
-        title: "Appointment Booked Successfully!",
-        description: `Your appointment with ${mockDoctors[selectedHospital as keyof typeof mockDoctors]?.find((d) => d.id === selectedDoctor)?.name} at ${selectedTime} has been confirmed.`,
-        type: "success",
-      })
-      // Reset form
-      setCurrentStep(1)
-      setUserInfo({ name: "", idNumber: "", phone: "", email: "" })
-      setSelectedHospital("")
-      setSelectedDoctor("")
-      setSelectedTime("")
-    } else {
-      setError("Booking failed. Please try again.")
-    }
+    createAppointmentMutation.mutate({
+      patient_name: userInfo.name,
+      patient_id_number: userInfo.idNumber,
+      patient_phone: userInfo.phone,
+      patient_email: userInfo.email || undefined,
+      appointment_time: selectedTime,
+      hospital_id: selectedHospital,
+      doctor_id: selectedDoctor,
+    })
   }
 
   const renderStep1 = () => (
@@ -209,7 +205,7 @@ function RouteComponent() {
         <Button
           colorScheme="blue"
           onClick={handleUserInfoSubmit}
-          loading={loading}
+          loading={validateUserMutation.isPending}
           loadingText="Validating..."
           size="lg"
           w="full"
@@ -224,7 +220,7 @@ function RouteComponent() {
     <Stack gap={6} align="stretch">
       <Heading size="lg">Step 2: Select Hospital</Heading>
       <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-        {mockHospitals.map((hospital) => (
+        {hospitalsData?.data.map((hospital) => (
           <Box
             key={hospital.id}
             p={6}
@@ -251,10 +247,10 @@ function RouteComponent() {
     <Stack gap={6} align="stretch">
       <Heading size="lg">Step 3: Select Doctor</Heading>
       <Text>
-        Hospital: {mockHospitals.find((h) => h.id === selectedHospital)?.name}
+        Hospital: {hospitalsData?.data.find((h) => h.id === selectedHospital)?.name}
       </Text>
       <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
-        {mockDoctors[selectedHospital as keyof typeof mockDoctors]?.map(
+        {doctorsData?.data.map(
           (doctor) => (
             <Box
               key={doctor.id}
@@ -283,11 +279,8 @@ function RouteComponent() {
   )
 
   const renderStep4 = () => {
-    const doctor = mockDoctors[
-      selectedHospital as keyof typeof mockDoctors
-    ]?.find((d) => d.id === selectedDoctor)
-    const availableTimes =
-      mockTimeSlots[selectedDoctor as keyof typeof mockTimeSlots] || []
+    const doctor = doctorsData?.data.find((d) => d.id === selectedDoctor)
+    const availableTimes = timeSlotsData || []
 
     return (
       <Stack gap={6} align="stretch">
@@ -302,14 +295,14 @@ function RouteComponent() {
         <Heading size="md">Available Times</Heading>
         {availableTimes.length > 0 ? (
           <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
-            {availableTimes.map((time) => (
+            {availableTimes.map((slot) => (
               <Button
-                key={time}
+                key={slot.id}
                 variant="outline"
-                onClick={() => handleTimeSelect(time)}
+                onClick={() => handleTimeSelect(slot.time_slot)}
                 _hover={{ bg: "blue.50" }}
               >
-                {time}
+                {slot.time_slot}
               </Button>
             ))}
           </SimpleGrid>
@@ -330,10 +323,8 @@ function RouteComponent() {
   }
 
   const renderStep5 = () => {
-    const hospital = mockHospitals.find((h) => h.id === selectedHospital)
-    const doctor = mockDoctors[
-      selectedHospital as keyof typeof mockDoctors
-    ]?.find((d) => d.id === selectedDoctor)
+    const hospital = hospitalsData?.data.find((h) => h.id === selectedHospital)
+    const doctor = doctorsData?.data.find((d) => d.id === selectedDoctor)
 
     return (
       <Stack gap={6} align="stretch">
@@ -381,7 +372,7 @@ function RouteComponent() {
           <Button
             colorScheme="green"
             onClick={handleConfirmBooking}
-            loading={loading}
+            loading={createAppointmentMutation.isPending}
             loadingText="Booking..."
             flex={1}
           >
