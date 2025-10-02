@@ -1,0 +1,120 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:17
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-app}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changethis}
+      - POSTGRES_DB=${POSTGRES_DB:-app}
+    ports:
+      - "5432:5432"
+    networks:
+      - microservices-network
+
+  # Appointments Microservice
+  appointments-service:
+    build:
+      context: ./services
+      dockerfile: appointments-service/Dockerfile
+    restart: always
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changethis}
+      - POSTGRES_DB=${POSTGRES_DB:-app}
+    ports:
+      - "8001:8001"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # Items Microservice
+  items-service:
+    build:
+      context: ./services
+      dockerfile: items-service/Dockerfile
+    restart: always
+    environment:
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changethis}
+      - POSTGRES_DB=${POSTGRES_DB:-app}
+    ports:
+      - "8002:8002"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+      - ENVIRONMENT=${ENVIRONMENT:-local}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      - SECRET_KEY=${SECRET_KEY:-changethis}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER:-admin@example.com}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD:-changethis}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changethis}
+      - POSTGRES_DB=${POSTGRES_DB:-app}
+      # Microservices URLs (using Docker service names)
+      - APPOINTMENTS_SERVICE_URL=http://appointments-service:8001/api/v1/appointments
+      - ITEMS_SERVICE_URL=http://items-service:8002/api/v1/items
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      appointments-service:
+        condition: service_healthy
+      items-service:
+        condition: service_healthy
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/utils/health-check/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  postgres_data:
+
+networks:
+  microservices-network:
+    driver: bridge
